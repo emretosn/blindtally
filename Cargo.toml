@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-tfhe = { version = "1.8", features = ["integer", "serde"] }
+tfhe = { version = "1.8", features = ["integer"] }
 
 [profile.release]
 opt-level = 3
