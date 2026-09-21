@@ -10,6 +10,23 @@ pub enum Candidate {
 
 pub const NUM_CANDIDATES: usize = 2;
 
+pub const ALL_CANDIDATES: [Candidate; NUM_CANDIDATES] = [Candidate::Alice, Candidate::Bob];
+
+#[derive(Debug)]
+pub struct ParseCandidateError;
+
+impl std::str::FromStr for Candidate {
+    type Err = ParseCandidateError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_lowercase().as_str() {
+            "alice" => Ok(Candidate::Alice),
+            "bob" => Ok(Candidate::Bob),
+            _ => Err(ParseCandidateError),
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Ballot {
     pub encrypted_choice: FheUint8,

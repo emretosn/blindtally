@@ -12,4 +12,6 @@ pub enum AppError {
     Encode(#[from] bincode::error::EncodeError),
     #[error("serialization (decode): {0}")]
     Decode(#[from] bincode::error::DecodeError),
+    #[error("unknown candidate: {0}")]
+    UnknownCandidate(String),
 }
