@@ -1,6 +1,5 @@
 use tfhe::{ClientKey, ServerKey};
 
-use crate::election::{Ballot, Candidate};
 use crate::errors::AppError;
 use crate::utils;
 
@@ -22,11 +21,4 @@ pub fn save_keys(client_key: &ClientKey, server_key: &ServerKey) -> Result<(), A
 
 pub fn load_client_key() -> Result<ClientKey, AppError> {
     utils::deserialize_from_file(CLIENT_KEY_PATH)
-}
-
-pub fn encrypt_votes(votes: &[Candidate], client_key: &ClientKey) -> Result<Vec<Ballot>, AppError> {
-    Ok(votes
-        .iter()
-        .map(|c| Ballot::try_new(*c, client_key))
-        .collect::<Result<Vec<_>, _>>()?)
 }
