@@ -6,10 +6,9 @@ use tfhe::FheUint8;
 pub enum Candidate {
     Alice = 0,
     Bob = 1,
-    Carol = 2,
 }
 
-pub const NUM_CANDIDATES: usize = 3;
+pub const NUM_CANDIDATES: usize = 2;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Ballot {

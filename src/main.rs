@@ -19,7 +19,6 @@ fn main() -> Result<(), errors::AppError> {
         Candidate::Alice,
         Candidate::Bob,
         Candidate::Alice,
-        Candidate::Carol,
         Candidate::Alice,
     ];
     let ballots = client::encrypt_votes(&votes, &client_key)?;
@@ -43,7 +42,7 @@ fn main() -> Result<(), errors::AppError> {
     let client_key_loaded = client::load_client_key()?;
     let counts: Vec<FheUint32> = utils::deserialize_from_file(utils::COUNTS_PATH)?;
 
-    for candidate in [Candidate::Alice, Candidate::Bob, Candidate::Carol] {
+    for candidate in [Candidate::Alice, Candidate::Bob] {
         let count: u32 = counts[candidate as usize].decrypt(&client_key_loaded);
         println!("{:?}: {} votes", candidate, count);
     }
