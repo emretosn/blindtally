@@ -1,15 +1,13 @@
 mod client;
-mod election;
-mod errors;
 mod server;
-mod utils;
 
 use clap::{Parser, Subcommand};
 use tfhe::prelude::*;
 use tfhe::FheUint32;
 
-use election::Candidate;
-use errors::AppError;
+use blindtally_core::election::{self, Candidate};
+use blindtally_core::errors::AppError;
+use blindtally_core::{io, paths};
 
 #[derive(Parser)]
 #[command(name = "blindtally", about = "Blind voting over fully homomorphic encryption")]
@@ -48,12 +46,12 @@ fn cmd_keygen() -> Result<(), AppError> {
     client::save_keys(&client_key, &server_key)?;
 
     let encrypted_zero = FheUint32::try_encrypt(0u32, &client_key)?;
-    utils::serialize_to_file(client::TALLY_SEED_PATH, &encrypted_zero)?;
+    io::serialize_to_file(paths::TALLY_SEED_PATH, &encrypted_zero)?;
 
     println!(
         "keys written: {}, {}",
-        client::CLIENT_KEY_PATH,
-        utils::SERVER_KEY_PATH
+        paths::CLIENT_KEY_PATH,
+        paths::SERVER_KEY_PATH
     );
     Ok(())
 }
@@ -67,21 +65,21 @@ fn cmd_vote(candidate: &str) -> Result<(), AppError> {
     let ballot = election::Ballot::try_new(candidate, &client_key)?;
 
     let mut ballots: Vec<election::Ballot> =
-        utils::deserialize_from_file(utils::BALLOTS_PATH).unwrap_or_default();
+        io::deserialize_from_file(paths::BALLOTS_PATH).unwrap_or_default();
     ballots.push(ballot);
-    utils::serialize_to_file(utils::BALLOTS_PATH, &ballots)?;
+    io::serialize_to_file(paths::BALLOTS_PATH, &ballots)?;
 
     println!("vote cast for {candidate:?}");
     Ok(())
 }
 
 fn cmd_tally() -> Result<(), AppError> {
-    let ballots: Vec<election::Ballot> = utils::deserialize_from_file(utils::BALLOTS_PATH)?;
-    let seed: FheUint32 = utils::deserialize_from_file(client::TALLY_SEED_PATH)?;
+    let ballots: Vec<election::Ballot> = io::deserialize_from_file(paths::BALLOTS_PATH)?;
+    let seed: FheUint32 = io::deserialize_from_file(paths::TALLY_SEED_PATH)?;
 
     server::load_server_key()?;
     let counts = server::tally(&ballots, &seed);
-    utils::serialize_to_file(utils::COUNTS_PATH, &counts)?;
+    io::serialize_to_file(paths::COUNTS_PATH, &counts)?;
 
     println!("tallied {} ballots", ballots.len());
     Ok(())
@@ -89,7 +87,7 @@ fn cmd_tally() -> Result<(), AppError> {
 
 fn cmd_result() -> Result<(), AppError> {
     let client_key = client::load_client_key()?;
-    let counts: Vec<FheUint32> = utils::deserialize_from_file(utils::COUNTS_PATH)?;
+    let counts: Vec<FheUint32> = io::deserialize_from_file(paths::COUNTS_PATH)?;
 
     for candidate in election::ALL_CANDIDATES {
         let count: u32 = counts[candidate as usize].decrypt(&client_key);

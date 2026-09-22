@@ -1,13 +1,13 @@
 use tfhe::prelude::*;
 use tfhe::{set_server_key, FheBool, FheUint32, ServerKey};
 
-use crate::election::{Ballot, NUM_CANDIDATES};
-use crate::errors::AppError;
-use crate::utils;
+use blindtally_core::election::{Ballot, NUM_CANDIDATES};
+use blindtally_core::errors::AppError;
+use blindtally_core::{io, paths};
 
 /// All operations on encrypted data that do NOT need the secret key live here.
 pub fn load_server_key() -> Result<ServerKey, AppError> {
-    let server_key: ServerKey = utils::deserialize_from_file(utils::SERVER_KEY_PATH)?;
+    let server_key: ServerKey = io::deserialize_from_file(paths::SERVER_KEY_PATH)?;
     set_server_key(server_key.clone());
     Ok(server_key)
 }

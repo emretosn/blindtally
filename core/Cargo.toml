@@ -1,8 +1,5 @@
-[workspace]
-members = ["core"]
-
 [package]
-name = "blindtally"
+name = "blindtally-core"
 version = "0.1.0"
 edition = "2024"
 
@@ -11,8 +8,3 @@ tfhe = { version = "1.8", features = ["integer"] }
 bincode = { version = "2", features = ["serde"] }
 serde = "1"
 thiserror = "2"
-clap = { version = "4", features = ["derive"] }
-blindtally-core = { path = "core" }
-
-[profile.release]
-opt-level = 3
