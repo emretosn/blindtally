@@ -1,0 +1,9 @@
+[package]
+name = "blindtally-client"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+blindtally-core = { path = "../core" }
+tfhe = { version = "1.8", features = ["integer"] }
+clap = { version = "4", features = ["derive"] }

@@ -134,15 +134,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "blindtally"
+name = "blindtally-client"
 version = "0.1.0"
 dependencies = [
- "bincode 2.0.1",
  "blindtally-core",
  "clap",
- "serde",
  "tfhe",
- "thiserror",
 ]
 
 [[package]]
@@ -153,6 +150,15 @@ dependencies = [
  "serde",
  "tfhe",
  "thiserror",
+]
+
+[[package]]
+name = "blindtally-server"
+version = "0.1.0"
+dependencies = [
+ "blindtally-core",
+ "clap",
+ "tfhe",
 ]
 
 [[package]]
