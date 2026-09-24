@@ -1,39 +1,35 @@
+mod error;
+mod routes;
 mod tally;
 
-use clap::{Parser, Subcommand};
-use tfhe::ServerKey;
+use std::net::SocketAddr;
 
-use blindtally_core::election::Ballot;
-use blindtally_core::errors::AppError;
-use blindtally_core::{io, paths};
+use clap::Parser;
+use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
+use tracing::Level;
 
 #[derive(Parser)]
-#[command(name = "blindtally-server", about = "Aggregate encrypted ballots")]
+#[command(name = "blindtally-server", about = "Aggregate encrypted ballots over HTTP")]
 struct Cli {
-    #[command(subcommand)]
-    command: Command,
+    /// Address to listen on
+    #[arg(long, default_value = "127.0.0.1:3000")]
+    addr: SocketAddr,
 }
 
-#[derive(Subcommand)]
-enum Command {
-    /// Aggregate all ballots into encrypted counts
-    Tally,
-}
-
-fn main() -> Result<(), AppError> {
+/// `#[tokio::main]` starts a tokio runtime and runs this async `main` on it.
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
+    tracing_subscriber::fmt().init();
     let cli = Cli::parse();
-    match cli.command {
-        Command::Tally => cmd_tally(),
-    }
-}
 
-fn cmd_tally() -> Result<(), AppError> {
-    let ballots: Vec<Ballot> = io::deserialize_from_file(paths::BALLOTS_PATH)?;
-    let server_key: ServerKey = io::deserialize_from_file(paths::SERVER_KEY_PATH)?;
+    // Middleware ("layers") wrap every route; this one logs each request.
+    let app = routes::router().layer(
+        TraceLayer::new_for_http()
+            .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+            .on_response(DefaultOnResponse::new().level(Level::INFO)),
+    );
 
-    let counts = tally::tally(&server_key, &ballots);
-    io::serialize_to_file(paths::COUNTS_PATH, &counts)?;
-
-    println!("tallied {} ballots", ballots.len());
-    Ok(())
+    let listener = tokio::net::TcpListener::bind(cli.addr).await?;
+    tracing::info!("listening on http://{}", cli.addr);
+    axum::serve(listener, app).await
 }
