@@ -5,14 +5,22 @@ use serde::Serialize;
 
 use crate::errors::AppError;
 
+/// Encodes a value into bincode bytes, e.g. for an HTTP request body.
+pub fn to_bytes<T: ?Sized + Serialize>(value: &T) -> Result<Vec<u8>, AppError> {
+    Ok(bincode::serde::encode_to_vec(value, bincode::config::standard())?)
+}
+
+/// Decodes a value from bincode bytes produced by [`to_bytes`].
+pub fn from_bytes<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, AppError> {
+    let (value, _) = bincode::serde::decode_from_slice(bytes, bincode::config::standard())?;
+    Ok(value)
+}
+
 pub fn serialize_to_file<T: ?Sized + Serialize>(path: &str, value: &T) -> Result<(), AppError> {
-    let bytes = bincode::serde::encode_to_vec(value, bincode::config::standard())?;
-    fs::write(path, bytes)?;
+    fs::write(path, to_bytes(value)?)?;
     Ok(())
 }
 
 pub fn deserialize_from_file<T: DeserializeOwned>(path: &str) -> Result<T, AppError> {
-    let bytes = fs::read(path)?;
-    let (value, _) = bincode::serde::decode_from_slice(&bytes, bincode::config::standard())?;
-    Ok(value)
+    from_bytes(&fs::read(path)?)
 }
