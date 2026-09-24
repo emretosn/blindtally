@@ -41,9 +41,6 @@ fn cmd_keygen() -> Result<(), AppError> {
     let (client_key, server_key) = keys::keygen();
     keys::save_keys(&client_key, &server_key)?;
 
-    let encrypted_zero = FheUint32::try_encrypt(0u32, &client_key)?;
-    io::serialize_to_file(paths::TALLY_SEED_PATH, &encrypted_zero)?;
-
     println!(
         "keys written: {}, {}",
         keys::CLIENT_KEY_PATH,

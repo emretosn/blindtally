@@ -1,7 +1,7 @@
 mod tally;
 
 use clap::{Parser, Subcommand};
-use tfhe::FheUint32;
+use tfhe::ServerKey;
 
 use blindtally_core::election::Ballot;
 use blindtally_core::errors::AppError;
@@ -29,10 +29,9 @@ fn main() -> Result<(), AppError> {
 
 fn cmd_tally() -> Result<(), AppError> {
     let ballots: Vec<Ballot> = io::deserialize_from_file(paths::BALLOTS_PATH)?;
-    let seed: FheUint32 = io::deserialize_from_file(paths::TALLY_SEED_PATH)?;
+    let server_key: ServerKey = io::deserialize_from_file(paths::SERVER_KEY_PATH)?;
 
-    tally::load_server_key()?;
-    let counts = tally::tally(&ballots, &seed);
+    let counts = tally::tally(&server_key, &ballots);
     io::serialize_to_file(paths::COUNTS_PATH, &counts)?;
 
     println!("tallied {} ballots", ballots.len());

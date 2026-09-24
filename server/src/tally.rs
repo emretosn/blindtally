@@ -2,20 +2,19 @@ use tfhe::prelude::*;
 use tfhe::{set_server_key, FheBool, FheUint32, ServerKey};
 
 use blindtally_core::election::{Ballot, NUM_CANDIDATES};
-use blindtally_core::errors::AppError;
-use blindtally_core::{io, paths};
-
-/// All operations on encrypted data that do NOT need the secret key live here.
-pub fn load_server_key() -> Result<ServerKey, AppError> {
-    let server_key: ServerKey = io::deserialize_from_file(paths::SERVER_KEY_PATH)?;
-    set_server_key(server_key.clone());
-    Ok(server_key)
-}
 
 /// Computes encrypted per-candidate counts. Notice: no client key in sight,
 /// so this function is physically unable to look at any individual vote.
-pub fn tally(ballots: &[Ballot], initial_count: &FheUint32) -> Vec<FheUint32> {
-    let mut counts: Vec<FheUint32> = (0..NUM_CANDIDATES).map(|_| initial_count.clone()).collect();
+///
+/// tfhe keeps the server key in a thread-local, so it is set here on
+/// whichever thread ends up running the computation.
+pub fn tally(server_key: &ServerKey, ballots: &[Ballot]) -> Vec<FheUint32> {
+    set_server_key(server_key.clone());
+
+    // A trivial encryption is a noiseless ciphertext anyone with the server
+    // key can make; adding real ciphertexts to it yields real ciphertexts.
+    let zero = FheUint32::encrypt_trivial(0u32);
+    let mut counts: Vec<FheUint32> = (0..NUM_CANDIDATES).map(|_| zero.clone()).collect();
 
     for ballot in ballots {
         for candidate_id in 0..NUM_CANDIDATES as u8 {
