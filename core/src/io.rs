@@ -1,13 +1,16 @@
 use std::fs;
 
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 use crate::errors::AppError;
 
 /// Encodes a value into bincode bytes, e.g. for an HTTP request body.
 pub fn to_bytes<T: ?Sized + Serialize>(value: &T) -> Result<Vec<u8>, AppError> {
-    Ok(bincode::serde::encode_to_vec(value, bincode::config::standard())?)
+    Ok(bincode::serde::encode_to_vec(
+        value,
+        bincode::config::standard(),
+    )?)
 }
 
 /// Decodes a value from bincode bytes produced by [`to_bytes`].

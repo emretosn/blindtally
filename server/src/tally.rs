@@ -1,5 +1,5 @@
 use tfhe::prelude::*;
-use tfhe::{set_server_key, FheBool, FheUint32, ServerKey};
+use tfhe::{FheBool, FheUint32, ServerKey, set_server_key};
 
 use blindtally_core::election::{Ballot, NUM_CANDIDATES};
 

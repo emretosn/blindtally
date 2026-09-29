@@ -9,7 +9,10 @@ use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 
 #[derive(Parser)]
-#[command(name = "blindtally-server", about = "Aggregate encrypted ballots over HTTP")]
+#[command(
+    name = "blindtally-server",
+    about = "Aggregate encrypted ballots over HTTP"
+)]
 struct Cli {
     /// Address to listen on
     #[arg(long, default_value = "127.0.0.1:3000")]

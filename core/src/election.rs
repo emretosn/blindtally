@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use tfhe::prelude::*;
 use tfhe::FheUint8;
+use tfhe::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Candidate {

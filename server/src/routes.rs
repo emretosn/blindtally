@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
+use axum::Router;
 use axum::body::Bytes;
 use axum::extract::{DefaultBodyLimit, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
-use axum::Router;
 use tfhe::{CompressedServerKey, FheUint32, ServerKey};
 
 use blindtally_core::election::Ballot;
@@ -100,8 +100,7 @@ async fn run_tally(State(state): State<AppState>) -> Result<String, ApiError> {
     };
 
     let num_ballots = ballots.len();
-    let counts =
-        tokio::task::spawn_blocking(move || tally::tally(&server_key, &ballots)).await?;
+    let counts = tokio::task::spawn_blocking(move || tally::tally(&server_key, &ballots)).await?;
 
     state.lock().unwrap().counts = Some(counts);
     tracing::info!(num_ballots, "tally complete");
