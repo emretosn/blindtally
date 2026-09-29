@@ -117,3 +117,102 @@ async fn results(State(state): State<AppState>) -> Result<Vec<u8>, ApiError> {
         .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "no tally has been run yet"))?;
     Ok(io::to_bytes(counts)?)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Body;
+    use axum::http::{Method, Request};
+    use blindtally_core::election::Candidate;
+    use tfhe::ClientKey;
+    use tfhe::prelude::*;
+    // `oneshot` sends one request straight into the router: no port, no
+    // network, but the same routing, extractors and error handling.
+    use tower::ServiceExt;
+
+    async fn send(app: &Router, method: Method, uri: &str, body: Vec<u8>) -> (StatusCode, Vec<u8>) {
+        let request = Request::builder()
+            .method(method)
+            .uri(uri)
+            .body(Body::from(body))
+            .unwrap();
+        // Cloning a Router is cheap and shares its state (the Arc), so
+        // requests sent to clones all see the same election.
+        let response = app.clone().oneshot(request).await.unwrap();
+        let status = response.status();
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        (status, bytes.to_vec())
+    }
+
+    #[tokio::test]
+    async fn unknown_route_is_not_found() {
+        let (status, _) = send(&router(), Method::GET, "/nope", vec![]).await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn wrong_method_is_rejected() {
+        let (status, _) = send(&router(), Method::GET, "/ballots", vec![]).await;
+        assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED);
+    }
+
+    #[tokio::test]
+    async fn garbage_ballot_is_a_bad_request() {
+        let (status, _) = send(&router(), Method::POST, "/ballots", b"garbage".to_vec()).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn garbage_key_is_a_bad_request() {
+        let (status, _) = send(&router(), Method::POST, "/keys", b"garbage".to_vec()).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn tally_before_open_is_a_conflict() {
+        let (status, body) = send(&router(), Method::POST, "/tally", vec![]).await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert!(String::from_utf8(body).unwrap().contains("not open"));
+    }
+
+    #[tokio::test]
+    async fn results_before_tally_are_not_found() {
+        let (status, _) = send(&router(), Method::GET, "/results", vec![]).await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+    }
+
+    /// A whole election over the HTTP API, as the client binary runs it.
+    #[tokio::test]
+    async fn full_election() {
+        let app = router();
+        let client_key = ClientKey::generate(tfhe::ConfigBuilder::default().build());
+        let key_bytes = io::to_bytes(&CompressedServerKey::new(&client_key)).unwrap();
+
+        // A ballot is well-formed but the election has no key yet.
+        let ballot = |choice| io::to_bytes(&Ballot::try_new(choice, &client_key).unwrap()).unwrap();
+        let (status, _) = send(&app, Method::POST, "/ballots", ballot(Candidate::Alice)).await;
+        assert_eq!(status, StatusCode::CONFLICT);
+
+        let (status, _) = send(&app, Method::POST, "/keys", key_bytes.clone()).await;
+        assert_eq!(status, StatusCode::CREATED);
+        let (status, _) = send(&app, Method::POST, "/keys", key_bytes).await;
+        assert_eq!(status, StatusCode::CONFLICT, "the key cannot be replaced");
+
+        for choice in [Candidate::Bob, Candidate::Alice, Candidate::Bob] {
+            let (status, _) = send(&app, Method::POST, "/ballots", ballot(choice)).await;
+            assert_eq!(status, StatusCode::CREATED);
+        }
+
+        let (status, body) = send(&app, Method::POST, "/tally", vec![]).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body, b"tallied 3 ballots");
+
+        let (status, body) = send(&app, Method::GET, "/results", vec![]).await;
+        assert_eq!(status, StatusCode::OK);
+        let counts: Vec<FheUint32> = io::from_bytes(&body).unwrap();
+        let counts: Vec<u32> = counts.iter().map(|c| c.decrypt(&client_key)).collect();
+        assert_eq!(counts, vec![1, 2]);
+    }
+}

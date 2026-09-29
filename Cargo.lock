@@ -227,6 +227,7 @@ dependencies = [
  "clap",
  "tfhe",
  "tokio",
+ "tower",
  "tower-http 0.7.1",
  "tracing",
  "tracing-subscriber",
