@@ -39,3 +39,30 @@ impl Ballot {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_candidate_names_case_insensitively() {
+        assert_eq!("alice".parse::<Candidate>().unwrap(), Candidate::Alice);
+        assert_eq!("Bob".parse::<Candidate>().unwrap(), Candidate::Bob);
+        assert_eq!("ALICE".parse::<Candidate>().unwrap(), Candidate::Alice);
+    }
+
+    #[test]
+    fn rejects_unknown_candidates() {
+        assert!("carol".parse::<Candidate>().is_err());
+        assert!("".parse::<Candidate>().is_err());
+    }
+
+    /// The tally uses `candidate as usize` as an index into the counts, so
+    /// ALL_CANDIDATES must list every candidate at the position of its ID.
+    #[test]
+    fn candidate_ids_match_their_position() {
+        for (index, candidate) in ALL_CANDIDATES.iter().enumerate() {
+            assert_eq!(*candidate as usize, index);
+        }
+    }
+}
