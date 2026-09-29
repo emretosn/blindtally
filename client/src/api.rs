@@ -61,3 +61,16 @@ impl Api {
         Err(ClientError::Server { status, message })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn trailing_slash_in_base_url_is_ignored() {
+        let with_slash = Api::new("http://localhost:3000/").unwrap();
+        let without = Api::new("http://localhost:3000").unwrap();
+        assert_eq!(with_slash.url("/ballots"), "http://localhost:3000/ballots");
+        assert_eq!(without.url("/ballots"), "http://localhost:3000/ballots");
+    }
+}
