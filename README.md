@@ -111,6 +111,27 @@ Errors come back as plain text.
 | `POST` | `/tally` | none | `200`, text such as `tallied 3 ballots` | `409` election not open |
 | `GET` | `/results` | none | `200`, `Vec<FheUint32>` (one count per candidate) | `404` no tally yet |
 
+## Testing
+
+```sh
+cargo test --workspace --release
+```
+
+Use `--release` here too. The tests take about 15 seconds, most of it
+generating TFHE keys. They cover:
+
+- **core:** candidate parsing and the bincode helpers.
+- **server, tally:** real ballots are encrypted, tallied with only the server
+  key, and decrypted to check the counts.
+- **server, routes:** requests go straight into the axum `Router` with
+  tower's `oneshot`, without opening a port. This covers every error status
+  and a full election from key upload to decrypted results.
+- **client:** building request URLs from the `--server` base URL.
+
+CI (`.github/workflows/ci.yml`) runs `cargo fmt --check`, `cargo clippy` with
+warnings treated as errors, and the tests on every push to `main` and every
+pull request.
+
 ## Limitations
 
 - **State is in memory only.** Restarting the server loses the election.
